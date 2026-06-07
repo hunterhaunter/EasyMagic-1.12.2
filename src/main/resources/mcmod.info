@@ -1,0 +1,16 @@
+[
+{
+    "modid": "easymagic",
+    "name": "Easy Magic",
+    "description": "Enchanting tables as they always should have been! Items stay after closing, enchantment hints, and easy re-rolls.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["Fuzs (original)", "XY (1.12.2 port)"],
+    "credits": "Original mod by Fuzs",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+}
+]
