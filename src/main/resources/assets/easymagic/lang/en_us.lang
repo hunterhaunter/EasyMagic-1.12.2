@@ -1,0 +1,10 @@
+container.easy_enchantment_table=Enchanting Table
+easymagic.config.keepItemsInTable=Keep Items In Table
+easymagic.config.showEnchantmentHints=Show Enchantment Hints
+easymagic.config.rerollEnabled=Enable Reroll
+easymagic.config.rerollCostsXp=Reroll Costs XP
+easymagic.reroll.tooltip=Reroll enchantments
+easymagic.reroll.xp.one=1 Experience Point
+easymagic.reroll.xp.many=%s Experience Points
+easymagic.reroll.lapis.one=1 Lapis Lazuli
+easymagic.reroll.lapis.many=%s Lapis Lazuli
