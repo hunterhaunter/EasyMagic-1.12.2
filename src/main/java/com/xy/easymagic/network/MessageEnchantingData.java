@@ -15,6 +15,7 @@ public class MessageEnchantingData implements IMessage {
     private int[] enchantClue;
     private int[] worldClue;
     private int[] enchantLevels;
+    private int xpSeed;
 
     public MessageEnchantingData() {
         this.enchantClue = new int[3];
@@ -22,10 +23,11 @@ public class MessageEnchantingData implements IMessage {
         this.enchantLevels = new int[3];
     }
 
-    public MessageEnchantingData(int[] enchantClue, int[] worldClue, int[] enchantLevels) {
+    public MessageEnchantingData(int[] enchantClue, int[] worldClue, int[] enchantLevels, int xpSeed) {
         this.enchantClue = enchantClue;
         this.worldClue = worldClue;
         this.enchantLevels = enchantLevels;
+        this.xpSeed = xpSeed;
     }
 
     @Override
@@ -39,6 +41,7 @@ public class MessageEnchantingData implements IMessage {
         for (int i = 0; i < 3; i++) {
             buf.writeInt(enchantLevels[i]);
         }
+        buf.writeInt(xpSeed);
     }
 
     @Override
@@ -55,6 +58,7 @@ public class MessageEnchantingData implements IMessage {
         for (int i = 0; i < 3; i++) {
             enchantLevels[i] = buf.readInt();
         }
+        this.xpSeed = buf.readInt();
     }
 
     public int[] getEnchantClue() {
@@ -67,6 +71,10 @@ public class MessageEnchantingData implements IMessage {
 
     public int[] getEnchantLevels() {
         return enchantLevels;
+    }
+
+    public int getXpSeed() {
+        return xpSeed;
     }
 
     public static class Handler implements IMessageHandler<MessageEnchantingData, IMessage> {

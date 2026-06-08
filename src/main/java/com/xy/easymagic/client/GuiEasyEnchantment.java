@@ -320,5 +320,6 @@ public class GuiEasyEnchantment extends GuiContainer {
         System.arraycopy(message.getEnchantClue(), 0, this.container.enchantClue, 0, 3);
         System.arraycopy(message.getWorldClue(), 0, this.container.worldClue, 0, 3);
         System.arraycopy(message.getEnchantLevels(), 0, this.container.enchantLevels, 0, 3);
+        this.container.xpSeed = message.getXpSeed();
     }
 }

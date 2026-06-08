@@ -41,10 +41,12 @@ public class ContainerEasyEnchantment extends Container {
     public int[] enchantLevels = new int[3];
     public int[] enchantClue = new int[]{-1, -1, -1};
     public int[] worldClue = new int[]{-1, -1, -1};
+    public int xpSeed;
 
     private int[] lastEnchantLevels = new int[]{-1, -1, -1};
     private int[] lastEnchantClue = new int[]{-2, -2, -2};
     private int[] lastWorldClue = new int[]{-2, -2, -2};
+    private int lastXpSeed;
 
     private static final String[] ENCHANTMENT_SEED_NAMES = {
         "xpSeed",
@@ -62,6 +64,7 @@ public class ContainerEasyEnchantment extends Container {
         this.world = world;
         this.pos = pos;
         this.rand = new Random();
+        this.xpSeed = player.getXPSeed();
 
         this.addSlotToContainer(new Slot(tableInventory, 0, 15, 47) {
             @Override
@@ -110,12 +113,16 @@ public class ContainerEasyEnchantment extends Container {
             ));
         }
 
-        computeEnchantmentData();
+        if (!this.world.isRemote) {
+            computeEnchantmentData();
+        }
     }
 
     @Override
     public void onCraftMatrixChanged(net.minecraft.inventory.IInventory inventoryIn) {
-        computeEnchantmentData();
+        if (!this.world.isRemote) {
+            computeEnchantmentData();
+        }
         super.onCraftMatrixChanged(inventoryIn);
     }
 
@@ -145,7 +152,8 @@ public class ContainerEasyEnchantment extends Container {
             return;
         }
 
-        int xpSeed = getPlayerEnchantmentSeed();
+        this.xpSeed = getPlayerEnchantmentSeed();
+        int xpSeed = this.xpSeed;
         float power = countEnchantPower();
 
         for (int i = 0; i < 3; i++) {
@@ -332,19 +340,16 @@ public class ContainerEasyEnchantment extends Container {
         super.detectAndSendChanges();
 
         for (IContainerListener listener : this.listeners) {
-            boolean changed = false;
-            for (int i = 0; i < 3; i++) {
+            boolean changed = this.xpSeed != this.lastXpSeed;
+            for (int i = 0; i < 3 && !changed; i++) {
                 if (this.enchantLevels[i] != this.lastEnchantLevels[i]) {
                     changed = true;
-                    break;
                 }
                 if (this.enchantClue[i] != this.lastEnchantClue[i]) {
                     changed = true;
-                    break;
                 }
                 if (this.worldClue[i] != this.lastWorldClue[i]) {
                     changed = true;
-                    break;
                 }
             }
 
@@ -356,6 +361,7 @@ public class ContainerEasyEnchantment extends Container {
         System.arraycopy(this.enchantLevels, 0, this.lastEnchantLevels, 0, 3);
         System.arraycopy(this.enchantClue, 0, this.lastEnchantClue, 0, 3);
         System.arraycopy(this.worldClue, 0, this.lastWorldClue, 0, 3);
+        this.lastXpSeed = this.xpSeed;
     }
 
     private void syncToListener(IContainerListener listener) {
@@ -368,7 +374,8 @@ public class ContainerEasyEnchantment extends Container {
                 new MessageEnchantingData(
                     this.enchantClue,
                     this.worldClue,
-                    this.enchantLevels
+                    this.enchantLevels,
+                    this.xpSeed
                 ),
                 (EntityPlayerMP) listener
             );
@@ -449,7 +456,7 @@ public class ContainerEasyEnchantment extends Container {
     }
 
     public int getXpSeed() {
-        return getPlayerEnchantmentSeed();
+        return this.xpSeed;
     }
 
     public int getLapisCount() {
@@ -462,10 +469,9 @@ public class ContainerEasyEnchantment extends Container {
         if (itemstack.isEmpty() || this.enchantLevels[slot] <= 0) {
             return java.util.Collections.emptyList();
         }
-        int xpSeed = getPlayerEnchantmentSeed();
         float power = countEnchantPower();
         boolean allowTreasure = (int) power >= 15;
-        Random r = new Random((long) (xpSeed + slot));
+        Random r = new Random((long) (this.xpSeed + slot));
         List<EnchantmentData> list = EnchantmentHelper.buildEnchantmentList(
             r, itemstack, this.enchantLevels[slot], allowTreasure
         );
