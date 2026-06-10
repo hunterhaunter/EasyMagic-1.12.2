@@ -24,6 +24,4 @@ enchanting mods keep working. Tested with:
 
 `./gradlew build` (RetroFuturaGradle). The Reagenchant compat mixins compile against the
 real jars, so building requires `Reagenchant-1.12.2-1.2.1.jar`, `LibraryEx-1.12.2-1.2.2.jar`,
-and the night-config core/json 3.6.0 jars in `libs/` (not redistributed here; get them from
-CurseForge/Maven). At runtime they stay optional — the compat mixins only load when
-Reagenchant is installed.
+and the night-config core/json 3.6.0 jars in `libs/` 
