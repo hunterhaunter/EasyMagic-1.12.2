@@ -7,11 +7,14 @@
   "refmap": "mixins.easymagic.refmap.json",
   "mixins": [
     "MixinContainerEnchantment",
+    "MixinContainerReagentTable",
     "MixinEnchantmentHelper"
   ],
   "client": [
     "MixinGuiEnchantment",
-    "MixinTESREnchantmentTable"
+    "MixinGuiReagentTable",
+    "MixinTESREnchantmentTable",
+    "MixinTESRReagentTable"
   ],
   "injectors": {
     "defaultRequire": 1

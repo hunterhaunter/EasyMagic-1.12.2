@@ -8,3 +8,22 @@ Keeps your item and lapis in the enchanting table when you close the GUI, shows 
 
 - Minecraft 1.12.2
 - Minecraft Forge 14.23.5.2860+
+- [MixinBooter](https://www.curseforge.com/minecraft/mc-mods/mixin-booter) 9.1+
+
+## Mod Compatibility
+
+Patches vanilla classes via Mixin only — no block or container replacement, so other
+enchanting mods keep working. Tested with:
+
+- [Reagenchant](https://www.curseforge.com/minecraft/mc-mods/reagenchant) — item retention,
+  floating item render, reroll button, and enchantment hints all work on the reagent table
+- Enchantment Control
+- Enchanting Plus
+
+## Building
+
+`./gradlew build` (RetroFuturaGradle). The Reagenchant compat mixins compile against the
+real jars, so building requires `Reagenchant-1.12.2-1.2.1.jar`, `LibraryEx-1.12.2-1.2.2.jar`,
+and the night-config core/json 3.6.0 jars in `libs/` (not redistributed here; get them from
+CurseForge/Maven). At runtime they stay optional — the compat mixins only load when
+Reagenchant is installed.

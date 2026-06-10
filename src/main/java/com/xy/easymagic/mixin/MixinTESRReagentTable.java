@@ -1,29 +1,27 @@
 package com.xy.easymagic.mixin;
 
 import com.xy.easymagic.IEasyMagicContainer;
-import com.xy.easymagic.capability.EasyMagicItemHandler;
 import com.xy.easymagic.client.EnchantedItemRenderer;
 
+import logictechcorp.reagenchant.client.renderer.tileentity.TileEntityReagentTableRenderer;
+import logictechcorp.reagenchant.tileentity.TileEntityReagentTable;
+
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.tileentity.TileEntityEnchantmentTableRenderer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntityEnchantmentTable;
-import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandler;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(TileEntityEnchantmentTableRenderer.class)
-public abstract class MixinTESREnchantmentTable {
+@Mixin(TileEntityReagentTableRenderer.class)
+public abstract class MixinTESRReagentTable {
 
-    @Inject(method = "render", at = @At("RETURN"))
-    private void easymagic$renderCapabilityItems(
-            TileEntityEnchantmentTable te, double x, double y, double z,
+    @Inject(method = "render", at = @At("RETURN"), remap = false)
+    private void easymagic$renderFloatingItems(
+            TileEntityReagentTable reagentTable, double x, double y, double z,
             float partialTicks, int destroyStage, float alpha, CallbackInfo ci) {
-        float time = (float) te.tickCount + partialTicks;
+        float time = (float) reagentTable.getTickCounter() + partialTicks;
 
         ItemStack itemToEnchant = ItemStack.EMPTY;
         ItemStack lapisStack = ItemStack.EMPTY;
@@ -31,23 +29,22 @@ public abstract class MixinTESREnchantmentTable {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.player != null && mc.player.openContainer instanceof IEasyMagicContainer) {
             IEasyMagicContainer emc = (IEasyMagicContainer) mc.player.openContainer;
-            if (te.getPos().equals(emc.easymagic$getPosition())) {
+            if (reagentTable.getPos().equals(emc.easymagic$getPosition())) {
                 itemToEnchant = emc.easymagic$getTableItem();
                 lapisStack = emc.easymagic$getLapisItem();
             }
         }
 
-        if (itemToEnchant.isEmpty() && lapisStack.isEmpty()) {
-            IItemHandler cap = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
-            if (cap instanceof EasyMagicItemHandler) {
-                itemToEnchant = ((EasyMagicItemHandler) cap).getStackInSlot(0);
-                lapisStack = ((EasyMagicItemHandler) cap).getStackInSlot(1);
-            }
+        if (itemToEnchant.isEmpty()) {
+            itemToEnchant = reagentTable.getInventory().getStackInSlot(0);
+        }
+        if (lapisStack.isEmpty()) {
+            lapisStack = reagentTable.getInventory().getStackInSlot(1);
         }
 
         if (!itemToEnchant.isEmpty()) {
             EnchantedItemRenderer.renderHoveringItem(itemToEnchant, x, y, z, time,
-                    partialTicks, te.bookSpread, te.bookSpreadPrev);
+                    partialTicks, reagentTable.getBookSpread(), reagentTable.getBookSpreadPrev());
         }
 
         if (!lapisStack.isEmpty()) {

@@ -23,5 +23,11 @@ public class PacketHandler {
             1,
             Side.CLIENT
         );
+        INSTANCE.registerMessage(
+            MessageEnchantHints.Handler.class,
+            MessageEnchantHints.class,
+            2,
+            Side.CLIENT
+        );
     }
 }

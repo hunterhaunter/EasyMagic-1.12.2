@@ -6,18 +6,17 @@ import com.xy.easymagic.config.EasyMagicConfig;
 import com.xy.easymagic.network.MessageEnchantHints;
 import com.xy.easymagic.network.MessageReroll;
 import com.xy.easymagic.network.PacketHandler;
-import net.minecraft.client.gui.GuiEnchantment;
+import logictechcorp.reagenchant.client.gui.GuiReagentTable;
+import logictechcorp.reagenchant.inventory.ContainerReagentTable;
+import logictechcorp.reagenchant.inventory.ReagentTableManager;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.ContainerEnchantment;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextFormatting;
-
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -27,11 +26,12 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-@Mixin(GuiEnchantment.class)
-public abstract class MixinGuiEnchantment extends GuiContainer {
+@Mixin(GuiReagentTable.class)
+public abstract class MixinGuiReagentTable extends GuiContainer {
 
     @Unique
     private static final Method easymagic$enchTableThreadLocalSet;
@@ -46,9 +46,11 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
         easymagic$enchTableThreadLocalSet = m;
     }
 
-    @Shadow
-    @Final
-    private ContainerEnchantment container;
+    @Shadow(remap = false)
+    private ContainerReagentTable container;
+
+    @Shadow(remap = false)
+    private ReagentTableManager reagentTableManager;
 
     @Unique
     private GuiButtonReroll easymagic$rerollButton;
@@ -56,7 +58,7 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
     @Unique
     private boolean easymagic$buttonInitialized;
 
-    protected MixinGuiEnchantment(Container inventorySlotsIn) {
+    protected MixinGuiReagentTable(Container inventorySlotsIn) {
         super(inventorySlotsIn);
     }
 
@@ -71,21 +73,21 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
         this.buttonList.add(this.easymagic$rerollButton);
     }
 
-    @Inject(method = "drawGuiContainerBackgroundLayer", at = @At("RETURN"))
+    @Inject(method = "func_146976_a", at = @At("RETURN"), remap = false)
     private void easymagic$updateRerollButton(float partialTicks, int mouseX, int mouseY, CallbackInfo ci) {
         easymagic$ensureButtonInit();
         if (this.easymagic$rerollButton == null) return;
         this.easymagic$rerollButton.x = this.guiLeft + EasyMagicConfig.rerollButtonOffsetX;
         this.easymagic$rerollButton.y = this.guiTop + EasyMagicConfig.rerollButtonOffsetY;
-        this.easymagic$rerollButton.setLapisAvailable(this.container.getLapisAmount());
+        this.easymagic$rerollButton.setLapisAvailable(this.reagentTableManager.getLapisAmount());
         this.easymagic$rerollButton.setXpAvailable(this.mc.player.experienceTotal);
-        ItemStack tableItem = this.container.tableInventory.getStackInSlot(0);
+        ItemStack tableItem = this.reagentTableManager.getInventory().getStackInSlot(0);
         this.easymagic$rerollButton.setItemPresent(!tableItem.isEmpty());
         this.easymagic$rerollButton.setItemEnchanted(!tableItem.isEmpty() && tableItem.isItemEnchanted());
         this.easymagic$rerollButton.updateEnabledState(this.mc.player.capabilities.isCreativeMode);
     }
 
-    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "func_73864_a", at = @At("HEAD"), cancellable = true, remap = false)
     private void easymagic$handleRerollClick(int mouseX, int mouseY, int mouseButton, CallbackInfo ci) {
         if (this.easymagic$rerollButton == null) return;
         if (mouseButton != 0) return;
@@ -97,17 +99,18 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
     }
 
     @Redirect(
-        method = "drawScreen",
+        method = "func_73863_a",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/GuiEnchantment;drawHoveringText(Ljava/util/List;II)V"
-        )
+            target = "Llogictechcorp/reagenchant/client/gui/GuiReagentTable;func_146283_a(Ljava/util/List;II)V"
+        ),
+        remap = false
     )
-    private void easymagic$enhanceEnchantTooltip(GuiEnchantment self, List<String> list, int mouseX, int mouseY) {
+    private void easymagic$enhanceEnchantTooltip(GuiReagentTable self, List<String> list, int mouseX, int mouseY) {
         if (EasyMagicConfig.showEnchantmentHints && EasyMagicConfig.enchantmentHintCount != 1) {
             for (int slot = 0; slot < 3; slot++) {
-                if (this.isPointInRegion(60, 14 + 19 * slot, 108, 17, mouseX, mouseY)
-                        && this.container.enchantLevels[slot] > 0) {
+                if (this.isPointInRegion(62, 14 + 19 * slot, 108, 17, mouseX, mouseY)
+                        && this.reagentTableManager.getEnchantabilityLevels()[slot] > 0) {
                     List<EnchantmentData> fullList = MessageEnchantHints.getHints(this.container.windowId, slot);
                     if (fullList == null) {
                         fullList = easymagic$computeEnchantList(slot);
@@ -130,7 +133,7 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
         self.drawHoveringText(list, mouseX, mouseY);
     }
 
-    @Inject(method = "drawScreen", at = @At("RETURN"))
+    @Inject(method = "func_73863_a", at = @At("RETURN"), remap = false)
     private void easymagic$drawRerollTooltip(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         if (!EasyMagicConfig.rerollEnabled) return;
         if (this.easymagic$rerollButton == null || !this.easymagic$rerollButton.isMouseOver()) return;
@@ -143,7 +146,7 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
 
             int lapisCost = EasyMagicConfig.rerollLapisCost;
             if (lapisCost >= 1) {
-                int lapisAvail = this.container.getLapisAmount();
+                int lapisAvail = this.reagentTableManager.getLapisAmount();
                 TextFormatting color = lapisAvail >= lapisCost ? TextFormatting.GRAY : TextFormatting.RED;
                 String text = lapisCost == 1
                         ? I18n.format("easymagic.reroll.lapis.one")
@@ -172,17 +175,17 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
 
     @Unique
     private List<EnchantmentData> easymagic$computeEnchantList(int slot) {
-        ItemStack stack = this.container.tableInventory.getStackInSlot(0);
-        int level = this.container.enchantLevels[slot];
-        if (stack.isEmpty() || level <= 0) return java.util.Collections.emptyList();
+        ItemStack stack = this.reagentTableManager.getInventory().getStackInSlot(0);
+        int level = this.reagentTableManager.getEnchantabilityLevels()[slot];
+        if (stack.isEmpty() || level <= 0) return Collections.emptyList();
         easymagic$markEnchTableContext();
-        Random rand = new Random((long) (this.container.xpSeed + slot));
-        List<EnchantmentData> list = EnchantmentHelper.buildEnchantmentList(rand, stack, level, false);
-        if (list == null) return java.util.Collections.emptyList();
-        if (stack.getItem() == Items.BOOK && list.size() > 1) {
-            list.remove(rand.nextInt(list.size()));
+        Random rand = new Random((long)(this.reagentTableManager.getXpSeed() + slot));
+        List<EnchantmentData> enchList = EnchantmentHelper.buildEnchantmentList(rand, stack, level, false);
+        if (enchList == null) return Collections.emptyList();
+        if (stack.getItem() == Items.BOOK && enchList.size() > 1) {
+            enchList.remove(rand.nextInt(enchList.size()));
         }
-        return list;
+        return enchList;
     }
 
     @Unique

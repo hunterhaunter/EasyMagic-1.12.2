@@ -25,3 +25,14 @@ Thumbs.db
 
 # Forge
 eclipse/
+
+# Local dev jars (third-party, not redistributed)
+libs/
+
+# Local working notes
+SPEC.md
+SPEC-*.md
+NOTES.md
+COMPAT_ANALYSIS.md
+HANDOFF_COMPAT_TESTING.md
+FLOATING_ITEMS_ROADMAP.md

@@ -4,10 +4,16 @@ import com.xy.easymagic.IEasyMagicContainer;
 import com.xy.easymagic.capability.EasyMagicItemHandler;
 import com.xy.easymagic.config.EasyMagicConfig;
 import com.xy.easymagic.network.MessageCapabilitySync;
+import com.xy.easymagic.network.MessageEnchantHints;
 import com.xy.easymagic.network.PacketHandler;
 
+import net.minecraft.enchantment.EnchantmentData;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.init.Items;
+import net.minecraft.inventory.Container;
 import net.minecraft.inventory.ContainerEnchantment;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
@@ -26,8 +32,27 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
 @Mixin(ContainerEnchantment.class)
 public abstract class MixinContainerEnchantment implements IEasyMagicContainer {
+
+    @Unique
+    private static final Method easymagic$enchTableThreadLocalSet;
+
+    static {
+        Method m = null;
+        try {
+            Class<?> cls = Class.forName("enchantmentcontrol.util.FromEnchTableThreadLocal");
+            m = cls.getMethod("set", boolean.class);
+        } catch (ClassNotFoundException | NoSuchMethodException ignored) {
+        }
+        easymagic$enchTableThreadLocalSet = m;
+    }
 
     @Shadow
     public IInventory tableInventory;
@@ -41,9 +66,55 @@ public abstract class MixinContainerEnchantment implements IEasyMagicContainer {
     @Shadow
     public int xpSeed;
 
+    @Shadow
+    public int[] enchantLevels;
+
+    @Unique
+    private EntityPlayerMP easymagic$player;
+
     @Override
     public BlockPos easymagic$getPosition() {
         return this.position;
+    }
+
+    @Override
+    public boolean easymagic$canReroll(boolean isCreative) {
+        ItemStack tableItem = this.tableInventory.getStackInSlot(0);
+        if (tableItem.isEmpty() || tableItem.isItemEnchanted()) {
+            return false;
+        }
+        if (!isCreative) {
+            int lapisCost = EasyMagicConfig.rerollLapisCost;
+            if (lapisCost > 0) {
+                ItemStack lapisStack = this.tableInventory.getStackInSlot(1);
+                if (lapisStack.isEmpty() || lapisStack.getCount() < lapisCost) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public ItemStack easymagic$getTableItem() {
+        return this.tableInventory.getStackInSlot(0);
+    }
+
+    @Override
+    public ItemStack easymagic$getLapisItem() {
+        return this.tableInventory.getStackInSlot(1);
+    }
+
+    @Override
+    public void easymagic$performReroll(EntityPlayerMP player, int newSeed, boolean isCreative) {
+        if (!isCreative) {
+            int lapisCost = EasyMagicConfig.rerollLapisCost;
+            if (lapisCost > 0) {
+                this.tableInventory.decrStackSize(1, lapisCost);
+            }
+        }
+        this.xpSeed = newSeed;
+        ((ContainerEnchantment)(Object)this).onCraftMatrixChanged(this.tableInventory);
     }
 
     @Inject(
@@ -51,6 +122,9 @@ public abstract class MixinContainerEnchantment implements IEasyMagicContainer {
         at = @At("TAIL")
     )
     private void easymagic$loadCapabilityItems(InventoryPlayer playerInv, World worldIn, BlockPos pos, CallbackInfo ci) {
+        if (playerInv.player instanceof EntityPlayerMP) {
+            this.easymagic$player = (EntityPlayerMP) playerInv.player;
+        }
         if (worldIn.isRemote) return;
         TileEntity te = worldIn.getTileEntity(pos);
         if (te == null) return;
@@ -105,5 +179,49 @@ public abstract class MixinContainerEnchantment implements IEasyMagicContainer {
             new MessageCapabilitySync(pos, handler.getStackInSlot(0), handler.getStackInSlot(1)),
             new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
         );
+    }
+
+    @Inject(method = "onCraftMatrixChanged", at = @At("RETURN"))
+    private void easymagic$sendEnchantHints(IInventory inventoryIn, CallbackInfo ci) {
+        if (this.world.isRemote || this.easymagic$player == null) return;
+        ItemStack stack = this.tableInventory.getStackInSlot(0);
+        if (stack.isEmpty()) {
+            PacketHandler.INSTANCE.sendTo(
+                new MessageEnchantHints(((Container)(Object)this).windowId,
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList()),
+                this.easymagic$player);
+            return;
+        }
+        List<EnchantmentData> slot0 = easymagic$buildSlotHints(stack, 0);
+        List<EnchantmentData> slot1 = easymagic$buildSlotHints(stack, 1);
+        List<EnchantmentData> slot2 = easymagic$buildSlotHints(stack, 2);
+        PacketHandler.INSTANCE.sendTo(
+            new MessageEnchantHints(((Container)(Object)this).windowId, slot0, slot1, slot2),
+            this.easymagic$player);
+    }
+
+    @Unique
+    @SuppressWarnings("unchecked")
+    private List<EnchantmentData> easymagic$buildSlotHints(ItemStack stack, int slot) {
+        int level = this.enchantLevels[slot];
+        if (level <= 0) return Collections.emptyList();
+        easymagic$markEnchTableContext();
+        Random rand = new Random((long) (this.xpSeed + slot));
+        List<EnchantmentData> list = EnchantmentHelper.buildEnchantmentList(rand, stack, level, false);
+        if (list == null) return Collections.emptyList();
+        if (stack.getItem() == Items.BOOK && list.size() > 1) {
+            list.remove(rand.nextInt(list.size()));
+        }
+        return list;
+    }
+
+    @Unique
+    private static void easymagic$markEnchTableContext() {
+        if (easymagic$enchTableThreadLocalSet != null) {
+            try {
+                easymagic$enchTableThreadLocalSet.invoke(null, true);
+            } catch (Exception ignored) {
+            }
+        }
     }
 }

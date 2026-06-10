@@ -9,6 +9,20 @@ import java.util.Set;
 
 public class EasyMagicMixinPlugin implements IMixinConfigPlugin {
 
+    private static final boolean REAGENCHANT_LOADED;
+
+    static {
+        boolean found;
+        try {
+            Class.forName("logictechcorp.reagenchant.Reagenchant", false,
+                    EasyMagicMixinPlugin.class.getClassLoader());
+            found = true;
+        } catch (ClassNotFoundException e) {
+            found = false;
+        }
+        REAGENCHANT_LOADED = found;
+    }
+
     @Override
     public void onLoad(String mixinPackage) {
     }
@@ -29,6 +43,13 @@ public class EasyMagicMixinPlugin implements IMixinConfigPlugin {
                 return true;
             }
         }
+
+        if (mixinClassName.endsWith("MixinContainerReagentTable")
+                || mixinClassName.endsWith("MixinGuiReagentTable")
+                || mixinClassName.endsWith("MixinTESRReagentTable")) {
+            return REAGENCHANT_LOADED;
+        }
+
         return true;
     }
 

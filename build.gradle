@@ -41,6 +41,10 @@ dependencies {
     annotationProcessor (mixinBooter) {
         transitive = false
     }
+
+    implementation rfg.deobf(files('libs/Reagenchant-1.12.2-1.2.1.jar'))
+    implementation rfg.deobf(files('libs/LibraryEx-1.12.2-1.2.2.jar'))
+    runtimeOnly files('libs/night-config-core-3.6.0.jar', 'libs/night-config-json-3.6.0.jar')
 }
 
 processResources {
