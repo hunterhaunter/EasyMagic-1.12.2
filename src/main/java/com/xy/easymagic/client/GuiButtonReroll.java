@@ -25,6 +25,7 @@ public class GuiButtonReroll extends GuiButton {
     private static final int ICON_HOVERED_V = 30;
 
     private int lapisAvailable;
+    private int xpAvailable;
     private boolean itemPresent;
     private boolean itemEnchanted;
 
@@ -36,12 +37,33 @@ public class GuiButtonReroll extends GuiButton {
         this.lapisAvailable = count;
     }
 
+    public void setXpAvailable(int xp) {
+        this.xpAvailable = xp;
+    }
+
     public void setItemPresent(boolean present) {
         this.itemPresent = present;
     }
 
     public void setItemEnchanted(boolean enchanted) {
         this.itemEnchanted = enchanted;
+    }
+
+    public void updateEnabledState(boolean isCreative) {
+        boolean unusable = !this.itemPresent || this.itemEnchanted;
+        if (unusable) {
+            this.enabled = false;
+            return;
+        }
+        if (isCreative) {
+            this.enabled = true;
+            return;
+        }
+        int lapisCost = EasyMagicConfig.rerollLapisCost;
+        int xpCost = EasyMagicConfig.rerollXpCost;
+        boolean cantAffordLapis = lapisCost > 0 && this.lapisAvailable < lapisCost;
+        boolean cantAffordXp = xpCost > 0 && this.xpAvailable < xpCost;
+        this.enabled = !cantAffordLapis && !cantAffordXp;
     }
 
     @Override
@@ -65,6 +87,9 @@ public class GuiButtonReroll extends GuiButton {
         }
         boolean cantAfford = cantAffordLapis || cantAffordXp;
 
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(0, 0, 200);
+
         mc.getTextureManager().bindTexture(REROLL_TEXTURE);
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(
@@ -80,7 +105,7 @@ public class GuiButtonReroll extends GuiButton {
 
         int bgV;
         int iconV;
-        if (!this.enabled || unusable || cantAfford) {
+        if (!this.enabled) {
             bgV = DISABLED_V;
             iconV = ICON_DISABLED_V;
         } else if (this.hovered) {
@@ -115,6 +140,7 @@ public class GuiButtonReroll extends GuiButton {
         }
 
         GlStateManager.disableBlend();
+        GlStateManager.popMatrix();
     }
 
     private void renderCostOrb(Minecraft mc, int orbX, int orbY, int texU, int cost, boolean disabled, int color) {

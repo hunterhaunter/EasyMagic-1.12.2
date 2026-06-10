@@ -1,22 +1,12 @@
 package com.xy.easymagic;
 
-import com.xy.easymagic.block.BlockEasyEnchantmentTable;
 import com.xy.easymagic.config.EasyMagicConfig;
-import com.xy.easymagic.handler.ModGuiHandler;
 import com.xy.easymagic.network.PacketHandler;
 import com.xy.easymagic.proxy.CommonProxy;
-import com.xy.easymagic.tileentity.TileEntityEasyEnchantmentTable;
 
-import net.minecraft.block.Block;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.common.registry.GameRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,29 +32,5 @@ public class EasyMagic {
     public void preInit(FMLPreInitializationEvent event) {
         EasyMagicConfig.init(event.getSuggestedConfigurationFile());
         PacketHandler.init();
-        GameRegistry.registerTileEntity(
-            TileEntityEasyEnchantmentTable.class,
-            new ResourceLocation(MODID, "easy_enchantment_table")
-        );
-        NetworkRegistry.INSTANCE.registerGuiHandler(instance, new ModGuiHandler());
-        proxy.preInit(event);
-    }
-
-    @Mod.EventHandler
-    public void init(FMLInitializationEvent event) {
-        proxy.init(event);
-    }
-
-    @Mod.EventBusSubscriber(modid = EasyMagic.MODID)
-    public static class RegistrationHandler {
-
-        @SubscribeEvent
-        public static void onRegisterBlocks(RegistryEvent.Register<Block> event) {
-            event.getRegistry().register(
-                new BlockEasyEnchantmentTable()
-                    .setRegistryName("minecraft", "enchanting_table")
-                    .setTranslationKey("enchantmentTable")
-            );
-        }
     }
 }

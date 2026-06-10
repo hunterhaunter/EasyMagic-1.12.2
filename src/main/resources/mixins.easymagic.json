@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.7.11",
+  "package": "com.xy.easymagic.mixin",
+  "plugin": "com.xy.easymagic.mixin.EasyMagicMixinPlugin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "mixins.easymagic.refmap.json",
+  "mixins": [
+    "MixinContainerEnchantment",
+    "MixinEnchantmentHelper"
+  ],
+  "client": [
+    "MixinGuiEnchantment",
+    "MixinTESREnchantmentTable"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

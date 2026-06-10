@@ -1,58 +1,55 @@
-package com.xy.easymagic.client;
+package com.xy.easymagic.mixin;
 
-import com.xy.easymagic.tileentity.TileEntityEasyEnchantmentTable;
+import com.xy.easymagic.capability.EasyMagicItemHandler;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
-import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
+import net.minecraft.client.renderer.tileentity.TileEntityEnchantmentTableRenderer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntityEnchantmentTable;
 import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.items.CapabilityItemHandler;
+import net.minecraftforge.items.IItemHandler;
 
-public class RenderTileEntityEasyEnchantmentTable
-    extends TileEntitySpecialRenderer<TileEntityEasyEnchantmentTable> {
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-    @Override
-    public void render(
-        TileEntityEasyEnchantmentTable te,
-        double x, double y, double z,
-        float partialTicks, int destroyStage, float alpha
-    ) {
-        @SuppressWarnings("unchecked")
-        TileEntitySpecialRenderer<TileEntityEnchantmentTable> vanillaRenderer =
-            (TileEntitySpecialRenderer<TileEntityEnchantmentTable>)
-            TileEntityRendererDispatcher.instance.renderers
-                .get(TileEntityEnchantmentTable.class);
+@Mixin(TileEntityEnchantmentTableRenderer.class)
+public abstract class MixinTESREnchantmentTable {
 
-        if (vanillaRenderer != null) {
-            vanillaRenderer.render(te, x, y, z, partialTicks, destroyStage, alpha);
-        }
+    @Inject(method = "render", at = @At("RETURN"))
+    private void easymagic$renderCapabilityItems(
+            TileEntityEnchantmentTable te, double x, double y, double z,
+            float partialTicks, int destroyStage, float alpha, CallbackInfo ci) {
+        IItemHandler cap = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
+        if (!(cap instanceof EasyMagicItemHandler)) return;
+        EasyMagicItemHandler handler = (EasyMagicItemHandler) cap;
 
         float time = (float) te.tickCount + partialTicks;
 
-        ItemStack itemToEnchant = te.getStackInSlot(0);
+        ItemStack itemToEnchant = handler.getStackInSlot(0);
         if (!itemToEnchant.isEmpty()) {
-            renderHoveringItem(itemToEnchant, x, y, z, time, te);
+            easymagic$renderHoveringItem(itemToEnchant, x, y, z, time, te);
         }
 
-        ItemStack lapisStack = te.getStackInSlot(1);
+        ItemStack lapisStack = handler.getStackInSlot(1);
         if (!lapisStack.isEmpty()) {
             int count = Math.min(lapisStack.getCount(), 4);
-            renderOrbitingLapis(lapisStack, x, y, z, time, count);
+            easymagic$renderOrbitingLapis(lapisStack, x, y, z, time, count);
         }
     }
 
-    private void renderHoveringItem(
-        ItemStack stack, double x, double y, double z,
-        float time, TileEntityEasyEnchantmentTable te
-    ) {
+    @Unique
+    private void easymagic$renderHoveringItem(
+            ItemStack stack, double x, double y, double z,
+            float time, TileEntityEnchantmentTable te) {
         float openState = te.bookSpreadPrev + (te.bookSpread - te.bookSpreadPrev) * (time - (float) te.tickCount);
-        if (openState <= 0.0F && te.bookSpreadPrev <= 0.0F) {
-            return;
-        }
+        if (openState <= 0.0F && te.bookSpreadPrev <= 0.0F) return;
 
         float bobY = MathHelper.sin(time / 10.0F) * 0.1F + 0.1F;
         float hoverY = 0.25F * openState;
@@ -66,16 +63,15 @@ public class RenderTileEntityEasyEnchantmentTable
 
         RenderHelper.enableStandardItemLighting();
         Minecraft.getMinecraft().getRenderItem().renderItem(
-            stack, ItemCameraTransforms.TransformType.GROUND
-        );
+                stack, ItemCameraTransforms.TransformType.GROUND);
         RenderHelper.disableStandardItemLighting();
         GlStateManager.popMatrix();
     }
 
-    private void renderOrbitingLapis(
-        ItemStack stack, double x, double y, double z,
-        float time, int count
-    ) {
+    @Unique
+    private void easymagic$renderOrbitingLapis(
+            ItemStack stack, double x, double y, double z,
+            float time, int count) {
         float angleStep = 360.0F / count;
         for (int i = 0; i < count; i++) {
             GlStateManager.pushMatrix();
@@ -88,8 +84,7 @@ public class RenderTileEntityEasyEnchantmentTable
 
             RenderHelper.enableStandardItemLighting();
             Minecraft.getMinecraft().getRenderItem().renderItem(
-                stack, ItemCameraTransforms.TransformType.GROUND
-            );
+                    stack, ItemCameraTransforms.TransformType.GROUND);
             RenderHelper.disableStandardItemLighting();
             GlStateManager.popMatrix();
         }

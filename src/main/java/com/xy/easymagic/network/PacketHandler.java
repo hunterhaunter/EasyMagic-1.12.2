@@ -11,24 +11,17 @@ public class PacketHandler {
 
     public static void init() {
         INSTANCE = NetworkRegistry.INSTANCE.newSimpleChannel(EasyMagic.MODID);
-        int id = 0;
-        INSTANCE.registerMessage(
-            MessageEnchantingData.Handler.class,
-            MessageEnchantingData.class,
-            id++,
-            Side.CLIENT
-        );
         INSTANCE.registerMessage(
             MessageReroll.Handler.class,
             MessageReroll.class,
-            id++,
+            0,
             Side.SERVER
         );
         INSTANCE.registerMessage(
-            MessageEnchantItem.Handler.class,
-            MessageEnchantItem.class,
-            id++,
-            Side.SERVER
+            MessageCapabilitySync.Handler.class,
+            MessageCapabilitySync.class,
+            1,
+            Side.CLIENT
         );
     }
 }

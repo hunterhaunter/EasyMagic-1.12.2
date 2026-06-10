@@ -13,6 +13,8 @@ public class EasyMagicConfig {
     public static int rerollLapisCost = 1;
     public static int maxBookshelfCount = 15;
     public static int enchantmentHintCount = -1;
+    public static int rerollButtonOffsetX = -42;
+    public static int rerollButtonOffsetY = 11;
 
     private static Configuration config;
 
@@ -65,6 +67,20 @@ public class EasyMagicConfig {
             -1,
             -1, 20,
             "How many enchantments to preview in the tooltip (-1 = show all, 1 = vanilla behavior)"
+        );
+        rerollButtonOffsetX = config.getInt(
+            "rerollButtonOffsetX",
+            "client",
+            -42,
+            -200, 200,
+            "Reroll button X offset from the left edge of the enchanting GUI (negative = left of GUI, positive = inside/right)"
+        );
+        rerollButtonOffsetY = config.getInt(
+            "rerollButtonOffsetY",
+            "client",
+            11,
+            -200, 200,
+            "Reroll button Y offset from the top edge of the enchanting GUI"
         );
 
         if (config.hasChanged()) {
