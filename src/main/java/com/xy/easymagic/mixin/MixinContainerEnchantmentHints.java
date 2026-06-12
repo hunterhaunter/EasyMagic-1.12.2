@@ -23,7 +23,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.lang.reflect.Method;
+import com.xy.easymagic.compat.EnchantmentControlCompat;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -36,19 +37,6 @@ import java.util.Random;
  */
 @Mixin(ContainerEnchantment.class)
 public abstract class MixinContainerEnchantmentHints {
-
-    @Unique
-    private static final Method easymagic$enchTableThreadLocalSet;
-
-    static {
-        Method m = null;
-        try {
-            Class<?> cls = Class.forName("enchantmentcontrol.util.FromEnchTableThreadLocal");
-            m = cls.getMethod("set", boolean.class);
-        } catch (ClassNotFoundException | NoSuchMethodException ignored) {
-        }
-        easymagic$enchTableThreadLocalSet = m;
-    }
 
     @Shadow
     public IInventory tableInventory;
@@ -115,7 +103,7 @@ public abstract class MixinContainerEnchantmentHints {
     private List<EnchantmentData> easymagic$buildSlotHints(ItemStack stack, int slot) {
         int level = this.enchantLevels[slot];
         if (level <= 0) return Collections.emptyList();
-        easymagic$markEnchTableContext();
+        EnchantmentControlCompat.markEnchTableContext();
         Random rand = new Random((long) (this.xpSeed + slot));
         List<EnchantmentData> list = EnchantmentHelper.buildEnchantmentList(rand, stack, level, false);
         if (list == null) return Collections.emptyList();
@@ -123,15 +111,5 @@ public abstract class MixinContainerEnchantmentHints {
             list.remove(rand.nextInt(list.size()));
         }
         return list;
-    }
-
-    @Unique
-    private static void easymagic$markEnchTableContext() {
-        if (easymagic$enchTableThreadLocalSet != null) {
-            try {
-                easymagic$enchTableThreadLocalSet.invoke(null, true);
-            } catch (Exception ignored) {
-            }
-        }
     }
 }

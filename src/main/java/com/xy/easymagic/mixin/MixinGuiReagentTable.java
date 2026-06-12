@@ -26,26 +26,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.lang.reflect.Method;
+import com.xy.easymagic.compat.EnchantmentControlCompat;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
 @Mixin(GuiReagentTable.class)
 public abstract class MixinGuiReagentTable extends GuiContainer {
-
-    @Unique
-    private static final Method easymagic$enchTableThreadLocalSet;
-
-    static {
-        Method m = null;
-        try {
-            Class<?> cls = Class.forName("enchantmentcontrol.util.FromEnchTableThreadLocal");
-            m = cls.getMethod("set", boolean.class);
-        } catch (ClassNotFoundException | NoSuchMethodException ignored) {
-        }
-        easymagic$enchTableThreadLocalSet = m;
-    }
 
     @Shadow(remap = false)
     private ContainerReagentTable container;
@@ -182,7 +170,7 @@ public abstract class MixinGuiReagentTable extends GuiContainer {
         ItemStack stack = this.reagentTableManager.getInventory().getStackInSlot(0);
         int level = this.reagentTableManager.getEnchantabilityLevels()[slot];
         if (stack.isEmpty() || level <= 0) return Collections.emptyList();
-        easymagic$markEnchTableContext();
+        EnchantmentControlCompat.markEnchTableContext();
         Random rand = new Random((long)(this.reagentTableManager.getXpSeed() + slot));
         List<EnchantmentData> enchList = EnchantmentHelper.buildEnchantmentList(rand, stack, level, false);
         if (enchList == null) return Collections.emptyList();
@@ -190,15 +178,5 @@ public abstract class MixinGuiReagentTable extends GuiContainer {
             enchList.remove(rand.nextInt(enchList.size()));
         }
         return enchList;
-    }
-
-    @Unique
-    private static void easymagic$markEnchTableContext() {
-        if (easymagic$enchTableThreadLocalSet != null) {
-            try {
-                easymagic$enchTableThreadLocalSet.invoke(null, true);
-            } catch (Exception ignored) {
-            }
-        }
     }
 }

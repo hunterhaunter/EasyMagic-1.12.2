@@ -3,6 +3,7 @@ package com.xy.easymagic.mixin;
 import com.xy.easymagic.EasyMagic;
 import com.xy.easymagic.IEasyMagicContainer;
 import com.xy.easymagic.LapisUtil;
+import com.xy.easymagic.compat.EnchantmentControlCompat;
 import com.xy.easymagic.config.EasyMagicConfig;
 import com.xy.easymagic.network.MessageEnchantHints;
 import com.xy.easymagic.network.PacketHandler;
@@ -102,19 +103,6 @@ public abstract class MixinContainerReagentTable implements IEasyMagicContainer 
     }
 
     @Unique
-    private static final Method easymagic$enchTableThreadLocalSet;
-
-    static {
-        Method m = null;
-        try {
-            Class<?> cls = Class.forName("enchantmentcontrol.util.FromEnchTableThreadLocal");
-            m = cls.getMethod("set", boolean.class);
-        } catch (ClassNotFoundException | NoSuchMethodException ignored) {
-        }
-        easymagic$enchTableThreadLocalSet = m;
-    }
-
-    @Unique
     private int easymagic$lastXpSeed = Integer.MIN_VALUE;
     @Unique
     private int[] easymagic$lastLevels = new int[3];
@@ -160,7 +148,7 @@ public abstract class MixinContainerReagentTable implements IEasyMagicContainer 
     private List<EnchantmentData> easymagic$buildSlotHints(ItemStack stack, int slot, int[] levels, int seed) {
         int level = levels[slot];
         if (level <= 0) return Collections.emptyList();
-        easymagic$markEnchTableContext();
+        EnchantmentControlCompat.markEnchTableContext();
         Random rand = new Random((long) (seed + slot));
         List<EnchantmentData> list = EnchantmentHelper.buildEnchantmentList(rand, stack, level, false);
         if (list == null) return Collections.emptyList();
@@ -168,15 +156,5 @@ public abstract class MixinContainerReagentTable implements IEasyMagicContainer 
             list.remove(rand.nextInt(list.size()));
         }
         return list;
-    }
-
-    @Unique
-    private static void easymagic$markEnchTableContext() {
-        if (easymagic$enchTableThreadLocalSet != null) {
-            try {
-                easymagic$enchTableThreadLocalSet.invoke(null, true);
-            } catch (Exception ignored) {
-            }
-        }
     }
 }
