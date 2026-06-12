@@ -17,8 +17,14 @@ enchanting mods keep working. Tested with:
 
 - [Reagenchant](https://www.curseforge.com/minecraft/mc-mods/reagenchant) — item retention,
   floating item render, reroll button, and enchantment hints all work on the reagent table
+- [Apotheosis](https://www.curseforge.com/minecraft/mc-mods/apotheosis) — enchantment hints
+  disable themselves automatically since Apotheosis rewrites the enchanting logic; item
+  retention and the reroll button keep working
 - Enchantment Control
 - Enchanting Plus
+
+The reroll button only accepts actual lapis lazuli (ore dictionary `gemLapis`). Items that
+other mods allow into the lapis slot, like prismarine crystals, won't trigger a reroll.
 
 ## Building
 
