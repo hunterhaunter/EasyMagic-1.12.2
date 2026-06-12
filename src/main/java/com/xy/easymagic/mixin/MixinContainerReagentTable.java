@@ -2,6 +2,7 @@ package com.xy.easymagic.mixin;
 
 import com.xy.easymagic.EasyMagic;
 import com.xy.easymagic.IEasyMagicContainer;
+import com.xy.easymagic.LapisUtil;
 import com.xy.easymagic.config.EasyMagicConfig;
 import com.xy.easymagic.network.MessageEnchantHints;
 import com.xy.easymagic.network.PacketHandler;
@@ -52,10 +53,9 @@ public abstract class MixinContainerReagentTable implements IEasyMagicContainer 
         }
         if (!isCreative) {
             int lapisCost = EasyMagicConfig.rerollLapisCost;
-            if (lapisCost > 0) {
-                if (this.reagentTableManager.getLapisAmount() < lapisCost) {
-                    return false;
-                }
+            if (lapisCost > 0
+                    && LapisUtil.getLapisCount(this.reagentTableManager.getInventory().getStackInSlot(1)) < lapisCost) {
+                return false;
             }
         }
         return true;
@@ -75,7 +75,8 @@ public abstract class MixinContainerReagentTable implements IEasyMagicContainer 
     public void easymagic$performReroll(EntityPlayerMP player, int newSeed, boolean isCreative) {
         if (!isCreative) {
             int lapisCost = EasyMagicConfig.rerollLapisCost;
-            if (lapisCost > 0) {
+            if (lapisCost > 0
+                    && LapisUtil.isLapis(this.reagentTableManager.getInventory().getStackInSlot(1))) {
                 this.reagentTableManager.getInventory().extractItem(1, lapisCost, false);
             }
         }

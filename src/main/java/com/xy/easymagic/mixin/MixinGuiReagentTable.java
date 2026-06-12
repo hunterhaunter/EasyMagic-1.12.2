@@ -1,6 +1,7 @@
 package com.xy.easymagic.mixin;
 
 import com.google.common.collect.Lists;
+import com.xy.easymagic.LapisUtil;
 import com.xy.easymagic.client.GuiButtonReroll;
 import com.xy.easymagic.config.EasyMagicConfig;
 import com.xy.easymagic.network.MessageEnchantHints;
@@ -79,7 +80,8 @@ public abstract class MixinGuiReagentTable extends GuiContainer {
         if (this.easymagic$rerollButton == null) return;
         this.easymagic$rerollButton.x = this.guiLeft + EasyMagicConfig.rerollButtonOffsetX;
         this.easymagic$rerollButton.y = this.guiTop + EasyMagicConfig.rerollButtonOffsetY;
-        this.easymagic$rerollButton.setLapisAvailable(this.reagentTableManager.getLapisAmount());
+        this.easymagic$rerollButton.setLapisAvailable(
+            LapisUtil.getLapisCount(this.reagentTableManager.getInventory().getStackInSlot(1)));
         this.easymagic$rerollButton.setXpAvailable(this.mc.player.experienceTotal);
         ItemStack tableItem = this.reagentTableManager.getInventory().getStackInSlot(0);
         this.easymagic$rerollButton.setItemPresent(!tableItem.isEmpty());
@@ -104,7 +106,8 @@ public abstract class MixinGuiReagentTable extends GuiContainer {
             value = "INVOKE",
             target = "Llogictechcorp/reagenchant/client/gui/GuiReagentTable;func_146283_a(Ljava/util/List;II)V"
         ),
-        remap = false
+        remap = false,
+        require = 0
     )
     private void easymagic$enhanceEnchantTooltip(GuiReagentTable self, List<String> list, int mouseX, int mouseY) {
         if (EasyMagicConfig.showEnchantmentHints && EasyMagicConfig.enchantmentHintCount != 1) {
@@ -146,7 +149,8 @@ public abstract class MixinGuiReagentTable extends GuiContainer {
 
             int lapisCost = EasyMagicConfig.rerollLapisCost;
             if (lapisCost >= 1) {
-                int lapisAvail = this.reagentTableManager.getLapisAmount();
+                int lapisAvail = LapisUtil.getLapisCount(
+                        this.reagentTableManager.getInventory().getStackInSlot(1));
                 TextFormatting color = lapisAvail >= lapisCost ? TextFormatting.GRAY : TextFormatting.RED;
                 String text = lapisCost == 1
                         ? I18n.format("easymagic.reroll.lapis.one")

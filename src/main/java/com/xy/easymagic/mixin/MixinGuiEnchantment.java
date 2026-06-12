@@ -1,17 +1,14 @@
 package com.xy.easymagic.mixin;
 
 import com.google.common.collect.Lists;
+import com.xy.easymagic.LapisUtil;
 import com.xy.easymagic.client.GuiButtonReroll;
 import com.xy.easymagic.config.EasyMagicConfig;
-import com.xy.easymagic.network.MessageEnchantHints;
 import com.xy.easymagic.network.MessageReroll;
 import com.xy.easymagic.network.PacketHandler;
 import net.minecraft.client.gui.GuiEnchantment;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.enchantment.EnchantmentData;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.init.Items;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.ContainerEnchantment;
 import net.minecraft.item.ItemStack;
@@ -23,28 +20,12 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Random;
 
 @Mixin(GuiEnchantment.class)
 public abstract class MixinGuiEnchantment extends GuiContainer {
-
-    @Unique
-    private static final Method easymagic$enchTableThreadLocalSet;
-
-    static {
-        Method m = null;
-        try {
-            Class<?> cls = Class.forName("enchantmentcontrol.util.FromEnchTableThreadLocal");
-            m = cls.getMethod("set", boolean.class);
-        } catch (ClassNotFoundException | NoSuchMethodException ignored) {
-        }
-        easymagic$enchTableThreadLocalSet = m;
-    }
 
     @Shadow
     @Final
@@ -77,7 +58,8 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
         if (this.easymagic$rerollButton == null) return;
         this.easymagic$rerollButton.x = this.guiLeft + EasyMagicConfig.rerollButtonOffsetX;
         this.easymagic$rerollButton.y = this.guiTop + EasyMagicConfig.rerollButtonOffsetY;
-        this.easymagic$rerollButton.setLapisAvailable(this.container.getLapisAmount());
+        this.easymagic$rerollButton.setLapisAvailable(
+            LapisUtil.getLapisCount(this.container.tableInventory.getStackInSlot(1)));
         this.easymagic$rerollButton.setXpAvailable(this.mc.player.experienceTotal);
         ItemStack tableItem = this.container.tableInventory.getStackInSlot(0);
         this.easymagic$rerollButton.setItemPresent(!tableItem.isEmpty());
@@ -96,40 +78,6 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
         }
     }
 
-    @Redirect(
-        method = "drawScreen",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/GuiEnchantment;drawHoveringText(Ljava/util/List;II)V"
-        )
-    )
-    private void easymagic$enhanceEnchantTooltip(GuiEnchantment self, List<String> list, int mouseX, int mouseY) {
-        if (EasyMagicConfig.showEnchantmentHints && EasyMagicConfig.enchantmentHintCount != 1) {
-            for (int slot = 0; slot < 3; slot++) {
-                if (this.isPointInRegion(60, 14 + 19 * slot, 108, 17, mouseX, mouseY)
-                        && this.container.enchantLevels[slot] > 0) {
-                    List<EnchantmentData> fullList = MessageEnchantHints.getHints(this.container.windowId, slot);
-                    if (fullList == null) {
-                        fullList = easymagic$computeEnchantList(slot);
-                    }
-                    int hintCount = EasyMagicConfig.enchantmentHintCount;
-                    int show = hintCount < 0 ? fullList.size() : Math.min(hintCount, fullList.size());
-                    if (show > 0 && !fullList.isEmpty()) {
-                        list.set(0, "" + TextFormatting.WHITE + TextFormatting.ITALIC
-                                + fullList.get(0).enchantment.getTranslatedName(fullList.get(0).enchantmentLevel));
-                        for (int i = 1; i < show; i++) {
-                            EnchantmentData ed = fullList.get(i);
-                            list.add(i, "" + TextFormatting.WHITE + TextFormatting.ITALIC
-                                    + ed.enchantment.getTranslatedName(ed.enchantmentLevel));
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-        self.drawHoveringText(list, mouseX, mouseY);
-    }
-
     @Inject(method = "drawScreen", at = @At("RETURN"))
     private void easymagic$drawRerollTooltip(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         if (!EasyMagicConfig.rerollEnabled) return;
@@ -143,7 +91,7 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
 
             int lapisCost = EasyMagicConfig.rerollLapisCost;
             if (lapisCost >= 1) {
-                int lapisAvail = this.container.getLapisAmount();
+                int lapisAvail = LapisUtil.getLapisCount(this.container.tableInventory.getStackInSlot(1));
                 TextFormatting color = lapisAvail >= lapisCost ? TextFormatting.GRAY : TextFormatting.RED;
                 String text = lapisCost == 1
                         ? I18n.format("easymagic.reroll.lapis.one")
@@ -168,30 +116,5 @@ public abstract class MixinGuiEnchantment extends GuiContainer {
         }
 
         this.drawHoveringText(tooltip, mouseX, mouseY);
-    }
-
-    @Unique
-    private List<EnchantmentData> easymagic$computeEnchantList(int slot) {
-        ItemStack stack = this.container.tableInventory.getStackInSlot(0);
-        int level = this.container.enchantLevels[slot];
-        if (stack.isEmpty() || level <= 0) return java.util.Collections.emptyList();
-        easymagic$markEnchTableContext();
-        Random rand = new Random((long) (this.container.xpSeed + slot));
-        List<EnchantmentData> list = EnchantmentHelper.buildEnchantmentList(rand, stack, level, false);
-        if (list == null) return java.util.Collections.emptyList();
-        if (stack.getItem() == Items.BOOK && list.size() > 1) {
-            list.remove(rand.nextInt(list.size()));
-        }
-        return list;
-    }
-
-    @Unique
-    private static void easymagic$markEnchTableContext() {
-        if (easymagic$enchTableThreadLocalSet != null) {
-            try {
-                easymagic$enchTableThreadLocalSet.invoke(null, true);
-            } catch (Exception ignored) {
-            }
-        }
     }
 }

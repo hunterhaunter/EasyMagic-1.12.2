@@ -1,5 +1,7 @@
 package com.xy.easymagic.mixin;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -9,18 +11,34 @@ import java.util.Set;
 
 public class EasyMagicMixinPlugin implements IMixinConfigPlugin {
 
-    private static final boolean REAGENCHANT_LOADED;
+    private static final Logger LOGGER = LogManager.getLogger("easymagic-mixin");
 
-    static {
-        boolean found;
-        try {
-            Class.forName("logictechcorp.reagenchant.Reagenchant", false,
-                    EasyMagicMixinPlugin.class.getClassLoader());
-            found = true;
-        } catch (ClassNotFoundException e) {
-            found = false;
+    private static final boolean REAGENCHANT_LOADED =
+            isClassPresent("logictechcorp.reagenchant.Reagenchant");
+
+    // Checked lazily: shouldApplyMixin runs when the target class first loads,
+    // by which point all mod jars are on the classpath.
+    private static Boolean apotheosisLoaded;
+
+    private static boolean isApotheosisLoaded() {
+        if (apotheosisLoaded == null) {
+            apotheosisLoaded = isClassPresent("shadows.Apotheosis")
+                    || isClassPresent("shadows.ApotheosisCore");
+            if (apotheosisLoaded) {
+                LOGGER.info("Apotheosis detected - disabling EasyMagic enchantment hints "
+                        + "(Apotheosis rewrites ContainerEnchantment#onCraftMatrixChanged)");
+            }
         }
-        REAGENCHANT_LOADED = found;
+        return apotheosisLoaded;
+    }
+
+    private static boolean isClassPresent(String className) {
+        try {
+            Class.forName(className, false, EasyMagicMixinPlugin.class.getClassLoader());
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     @Override
@@ -35,13 +53,12 @@ public class EasyMagicMixinPlugin implements IMixinConfigPlugin {
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         if (mixinClassName.endsWith("MixinEnchantmentHelper")) {
-            try {
-                Class.forName("enchantmentcontrol.core.EnchantmentControlPlugin", false,
-                        getClass().getClassLoader());
-                return false;
-            } catch (ClassNotFoundException e) {
-                return true;
-            }
+            return !isClassPresent("enchantmentcontrol.core.EnchantmentControlPlugin");
+        }
+
+        if (mixinClassName.endsWith("MixinContainerEnchantmentHints")
+                || mixinClassName.endsWith("MixinGuiEnchantmentHints")) {
+            return !isApotheosisLoaded();
         }
 
         if (mixinClassName.endsWith("MixinContainerReagentTable")
