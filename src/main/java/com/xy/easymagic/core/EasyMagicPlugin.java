@@ -1,17 +1,25 @@
 package com.xy.easymagic.core;
 
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
-import org.spongepowered.asm.launch.MixinBootstrap;
-import org.spongepowered.asm.mixin.Mixins;
+import zone.rong.mixinbooter.IEarlyMixinLoader;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @IFMLLoadingPlugin.MCVersion("1.12.2")
-public class EasyMagicPlugin implements IFMLLoadingPlugin {
+public class EasyMagicPlugin implements IFMLLoadingPlugin, IEarlyMixinLoader {
 
-    public EasyMagicPlugin() {
-        MixinBootstrap.init();
-        Mixins.addConfiguration("mixins.easymagic.json");
+    // Do NOT call MixinBootstrap.init() / Mixins.addConfiguration() here.
+    // MixinBooter owns Mixin (loaded in the LaunchClassLoader); touching it from
+    // this coremod constructor either runs too early ("you didn't call
+    // MixinBootstrap.init()") or causes a loader-constraint LinkageError on
+    // GlobalProperties$Keys. Instead implement IEarlyMixinLoader and let
+    // MixinBooter queue the config with its own Mixin instance at the right time.
+
+    @Override
+    public List<String> getMixinConfigs() {
+        return Collections.singletonList("mixins.easymagic.json");
     }
 
     @Override
