@@ -29,11 +29,8 @@ eclipse/
 # Local dev jars (third-party, not redistributed)
 libs/
 
-# Internal port notes — never publish
 _docs/
 _logs/
 _original/
-_INTAKE/
-PORT.md
 *.log
 .rfg-classpath.txt
